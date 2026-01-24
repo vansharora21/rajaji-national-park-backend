@@ -3,12 +3,12 @@ import Contact from "../models/Contact.model.js";
 // POST contact
 export const createContact = async (req, res) => {
   try {
-    const { name, email, message } = req.body;
+    const { name, email, phone, subject, message } = req.body;
 
-    if (!name || !email || !message)
+    if (!name || !email || !phone || !subject || !message)
       return res.status(400).json({ message: "All fields required" });
 
-    await Contact.create({ name, email, message });
+    await Contact.create({ name, email, phone, subject, message });
 
     res.status(201).json({ message: "Message sent successfully" });
   } catch (error) {
