@@ -4,21 +4,34 @@ const gallerySchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: true,
+      required: [true, "Title is required"],
       trim: true,
-    },
-    image: {
-      type: String, // image URL
-      required: true,
     },
     category: {
       type: String,
-      required: true,
+      enum: {
+        values: ["Wildlife", "Birds", "Tourist", "Safari", "Others"],
+        message: "Category must be one of: Wildlife, Birds, Tourist, Safari, Others",
+      },
       trim: true,
-      enum: ["wildlife", "landscape", "birds", "safari", "others"],
+    },
+    imageFile: {
+      type: String, // Stores filename if uploaded via Multer
+    },
+    imageUrl: {
+      type: String, // Stores direct URL if provided
     },
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Gallery", gallerySchema);
+// Use async function and throw error instead of next()
+gallerySchema.pre("validate", async function () {
+  if (!this.imageFile && !this.imageUrl) {
+    throw new Error("Image file or image URL is required");
+  }
+});
+
+const Gallery = mongoose.model("Gallery", gallerySchema);
+
+export default Gallery;
