@@ -1,5 +1,6 @@
 import express from "express";
-import upload from "../middleware/multer.js";
+import multer from "multer";
+import { storage } from "../config/cloudinary.js";
 import { verifyAdmin } from "../middleware/auth.middleware.js";
 import {
   createGalleryItem,
@@ -12,6 +13,7 @@ import {
 } from "../controllers/gallery.controller.js";
 
 const router = express.Router();
+const upload = multer({ storage });
 
 // ==================== PUBLIC ROUTES ====================
 

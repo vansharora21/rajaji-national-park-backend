@@ -6,7 +6,7 @@ export const createBlog = async (req, res) => {
     const { title, details, publishedDate, category } = req.body;
 
     // Handle image from file upload or body (URL)
-    const image = req.file ? req.file.filename : req.body.image;
+    const image = req.file ? req.file.path : req.body.image;
 
     if (!title || !image || !details || !category) {
       return res.status(400).json({ message: "All fields (title, image, details, category) are required" });
@@ -68,7 +68,7 @@ export const updateBlog = async (req, res) => {
     // 3. If neither is provided, the 'image' field is simply not included in updateData,
     //    meaning Mongoose will leave the existing value in the database alone.
     if (req.file) {
-      updateData.image = req.file.filename;
+      updateData.image = req.file.path;
     } else if (imageUrl) {
       updateData.image = imageUrl;
     }

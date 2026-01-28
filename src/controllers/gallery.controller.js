@@ -1,43 +1,28 @@
 import Gallery from "../models/Gallery.model.js";
+import { cloudinary } from "../config/cloudinary.js";
 
-// ✅ ADD IMAGE (Admin)
 export const createGalleryItem = async (req, res) => {
   try {
-    const { title, category, imageUrl } = req.body;
+    const { title, category } = req.body;
 
-    // ✅ Correct validation
     if (!title) {
       return res.status(400).json({ message: "Title is required" });
     }
     if (!category) {
       return res.status(400).json({ message: "Category is required" });
     }
-
-    // ✅ Accept EITHER file OR URL
-    if (!req.file && !imageUrl) {
-      return res.status(400).json({
-        message: "Image file or image URL is required",
-      });
+    if (!req.file) {
+      return res.status(400).json({ message: "Image file is required" });
     }
 
-    const galleryData = {
+    const galleryItem = await Gallery.create({
       title,
       category,
-    };
+      imageUrl: req.file.path, // ✅ CLOUDINARY URL
+      imagePublicId: req.file.filename, // ✅ Save Cloudinary Public ID
+    });
 
-    // If file uploaded
-    if (req.file) {
-      galleryData.imageFile = req.file.filename; // or req.file.path / cloudinary url
-    }
-
-    // If URL provided
-    if (imageUrl) {
-      galleryData.imageUrl = imageUrl;
-    }
-
-    const galleryItem = await Gallery.create(galleryData);
-
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       data: galleryItem,
     });
@@ -66,7 +51,7 @@ export const getGalleryItems = async (req, res) => {
 export const updateGalleryItem = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, category, imageUrl } = req.body;
+    const { title, category } = req.body;
 
     const galleryItem = await Gallery.findById(id);
     if (!galleryItem) {
@@ -78,12 +63,14 @@ export const updateGalleryItem = async (req, res) => {
       category,
     };
 
-    // If new file uploaded
+    // If new image uploaded → replace URL
     if (req.file) {
-      updateData.imageFile = req.file.filename;
-    } else if (imageUrl) {
-      // If new URL provided
-      updateData.imageUrl = imageUrl;
+      // Delete old image from Cloudinary
+      if (galleryItem.imagePublicId) {
+        await cloudinary.uploader.destroy(galleryItem.imagePublicId);
+      }
+      updateData.imageUrl = req.file.path; // ✅ Cloudinary URL
+      updateData.imagePublicId = req.file.filename;
     }
 
     const updatedItem = await Gallery.findByIdAndUpdate(
@@ -111,11 +98,17 @@ export const deleteGalleryItem = async (req, res) => {
       return res.status(404).json({ message: "Gallery item not found" });
     }
 
+    // Delete image from Cloudinary
+    if (deletedItem.imagePublicId) {
+      await cloudinary.uploader.destroy(deletedItem.imagePublicId);
+    }
+
     res.status(200).json({ message: "Gallery item deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message || "Server error" });
   }
 };
+
 
 // ✅ GET SINGLE GALLERY ITEM BY ID
 export const getGalleryById = async (req, res) => {

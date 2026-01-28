@@ -1,66 +1,47 @@
+// src/middleware/multer.js
 import multer from "multer";
-import fs from "fs";
 import path from "path";
 
-// Create uploads directory if it doesn't exist
-const createUploadDirs = () => {
-  const dirs = ["uploads/images", "uploads/pdfs", "uploads/excel"];
-  dirs.forEach((dir) => {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-  });
-};
-
-createUploadDirs();
-
-// Configure multer for local storage
+// -------------------------
+// Storage configuration
+// -------------------------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    let uploadDir = "uploads/images/";
-    
-    if (file.fieldname === "pdf") {
-      uploadDir = "uploads/pdfs/";
-    } else if (file.fieldname === "file") {
-      uploadDir = "uploads/excel/";
-    }
-
-    // Ensure directory exists before saving
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    cb(null, uploadDir);
+    cb(null, "uploads/images"); // folder where images will be saved
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
+    // unique filename: timestamp + original name
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
   },
 });
 
-// File validation filter
-const fileFilter = (req, file, cb) => {
-  const ext = path.extname(file.originalname).toLowerCase();
-
-  if (file.fieldname === "pdf") {
-    if (ext === ".pdf") return cb(null, true);
-    return cb(new Error("Only PDF files are allowed!"));
+// -------------------------
+// File filter for images only
+// -------------------------
+const imageFilter = (req, file, cb) => {
+  if (
+    file.mimetype === "image/jpeg" ||
+    file.mimetype === "image/png" ||
+    file.mimetype === "image/jpg"
+  ) {
+    cb(null, true); // accept file
+  } else {
+    cb(new Error("Only JPG, JPEG, PNG images are allowed"), false);
   }
-
-  if (file.fieldname === "file") {
-    if ([".xlsx", ".xls", ".csv"].includes(ext)) return cb(null, true);
-    return cb(new Error("Only Excel or CSV files are allowed!"));
-  }
-
-  // Default to images
-  if (/^\.(jpg|jpeg|png|gif|webp)$/.test(ext)) return cb(null, true);
-
-  cb(new Error("Only image files are allowed!"));
 };
 
+// -------------------------
+// Multer upload instance
+// -------------------------
 const upload = multer({
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
-  fileFilter,
+  storage: storage,
+  fileFilter: imageFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max
 });
 
+// -------------------------
+// Default export
+// -------------------------
 export default upload;
